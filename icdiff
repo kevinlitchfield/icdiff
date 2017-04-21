@@ -485,6 +485,14 @@ def start():
                       help="show the whole file instead of just changed "
                       "lines and context")
 
+
+    # FIXME update this
+    parser.add_option("-i", "--input", default=False,
+                      action="store_true",
+                      help="diff user input rather than files")
+
+
+
     (options, args) = parser.parse_args()
 
     if len(args) != 2:
@@ -510,7 +518,10 @@ def start():
         else:
             options.cols = 80
 
-    diff(options, a, b)
+    if options.input:
+        diff_text(options, a, b)
+    else:
+        diff(options, a, b)
 
 def codec_print(s, options):
     s = "%s\n" % s
@@ -591,6 +602,9 @@ def diff_files(options, a, b):
         lines_a = lines_a[:head]
         lines_b = lines_b[:head]
 
+
+    # import code; code.interact(local=dict(globals(), **locals()))
+
     cd = ConsoleDiff(cols=int(options.cols),
                      show_all_spaces=options.show_all_spaces,
                      highlight=options.highlight,
@@ -601,8 +615,54 @@ def diff_files(options, a, b):
             lines_a, lines_b, headers[0], headers[1],
             context=(not options.whole_file),
             numlines=int(options.unified)):
+
+
         codec_print(line, options)
         sys.stdout.flush()
+
+
+def diff_text(options, a, b):
+
+    # if options.labels:
+    #     if len(options.labels) == 2:
+    #         headers = options.labels
+    #     else:
+    #         codec_print("error: to use arbitrary file labels, "
+    #                     "specify -L twice.", options)
+    #         return
+    # else:
+    #     headers = a, b
+    # if options.no_headers:
+    headers = None, None
+
+
+    lines_a = unicode(a, 'utf-8').split("\n")
+    lines_b = unicode(b, 'utf-8').split("\n")
+
+
+    # import code; code.interact(local=dict(globals(), **locals()))
+
+
+    cd = ConsoleDiff(cols=int(options.cols),
+                     show_all_spaces=options.show_all_spaces,
+                     highlight=options.highlight,
+                     no_bold=options.no_bold,
+                     line_numbers=options.line_numbers,
+                     tabsize=int(options.tabsize))
+
+
+    for line in cd.make_table(
+            lines_a, lines_b, headers[0], headers[1],
+            context=(not options.whole_file),
+            numlines=int(options.unified)):
+
+
+        codec_print(line, options)
+        sys.stdout.flush()
+
+
+
+
 
 if __name__ == "__main__":
     try:
