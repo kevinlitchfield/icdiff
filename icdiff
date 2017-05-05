@@ -524,6 +524,17 @@ def codec_print(s, options):
     else:
         sys.stdout.write(s.encode(options.output_encoding))
 
+# FIXME: this will be too slow for big files. could just parse error message
+def validate_is_file(path):
+    try:
+        filecmp.cmp(path, path)
+    except OSError:
+        print_error("error: `%s` does not exist." % path)
+        sys.exit(1)
+
+# FIXME: this isn't how errors are being printed elsewhere
+def print_error(s):
+    print(simple_colorize(s, "magenta"))
 
 def diff(options, a, b):
     def print_meta(s):
@@ -531,14 +542,16 @@ def diff(options, a, b):
 
     # Don't use os.path.isfile; it returns False for file-like entities like
     # bash's process substitution (/dev/fd/N).
-    is_a_file = not os.path.isdir(a)
-    is_b_file = not os.path.isdir(b)
+    is_a_dir = os.path.isdir(a)
+    is_b_dir = os.path.isdir(b)
 
-    if is_a_file and is_b_file:
+    if not is_a_dir and not is_b_dir:
+        validate_is_file(a)
+        validate_is_file(b)
         if not filecmp.cmp(a, b, shallow=False):
             diff_files(options, a, b)
 
-    elif not is_a_file and not is_b_file:
+    elif is_a_dir and is_b_dir:
         a_contents = set(os.listdir(a))
         b_contents = set(os.listdir(b))
 
@@ -551,10 +564,10 @@ def diff(options, a, b):
                 diff(options,
                      os.path.join(a, child),
                      os.path.join(b, child))
-    elif not is_a_file and is_b_file:
+    elif is_a_dir and not is_b_dir:
         print_meta("File %s is a directory while %s is a file" % (a, b))
 
-    elif is_a_file and not is_b_file:
+    elif not is_a_dir and is_b_dir:
         print_meta("File %s is a file while %s is a directory" % (a, b))
 
 def read_file(fname, options):
